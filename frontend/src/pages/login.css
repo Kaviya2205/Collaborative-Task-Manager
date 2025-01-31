@@ -1,0 +1,75 @@
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+button {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+button:hover {
+  background: #0056b3;
+}
+// Enable Drag and Drop in Kanban Board
+import React, { useState, useEffect } from "react";
+import "./KanbanBoard.css";
+
+function KanbanBoard() {
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    fetch("/tasks")
+      .then((res) => res.json())
+      .then((data) => setTasks(data));
+  }, []);
+
+  const handleDragStart = (e, task) => {
+    e.dataTransfer.setData("task", JSON.stringify(task));
+  };
+
+  const handleDrop = async (e, newStatus) => {
+    const task = JSON.parse(e.dataTransfer.getData("task"));
+    const updatedTask = { ...task, status: newStatus };
+    
+    await fetch(`/tasks/${task._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedTask),
+    });
+
+    setTasks(tasks.map(t => (t._id === task._id ? updatedTask : t)));
+  };
+
+  return (
+    <div className="kanban-board">
+      {["todo", "in-progress", "done"].map(status => (
+        <div
+          key={status}
+          className={`column ${status}`}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => handleDrop(e, status)}
+        >
+          <h2>{status.toUpperCase()}</h2>
+          {tasks.filter(task => task.status === status).map(task => (
+            <div 
+              key={task._id} 
+              className="task-card" 
+              draggable
+              onDragStart={(e) => handleDragStart(e, task)}
+            >
+              {task.title}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default KanbanBoard;
